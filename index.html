@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="description" content="一堆漫画"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>Reader</title>
+        <link rel="shortcut icon" href="#"/>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.css" integrity="sha256-cDGQ39yChhpN5vzgHbjIdGEtQ5kXE9tttCsI7VR9TuY=" crossorigin="anonymous">
+        <style>
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            width: 10px;
+            border-radius: 10px;
+            background-color: rgba(255,255,255,0.2);
+            border: solid 1px rgba(150,150,150);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        ::-webkit-scrollbar-corner {
+            background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABJSURBVChTY/z/iQEPYILSOABImpEPhOAAjcsANB9iBZyEM4izG81wOEDohosim4dwOVAUgoDgrZYKhMTpMYgK7NLC1+6AyGt3AKeXIPH7jPPdAAAAAElFTkSuQmCC);
+        }
+        body {
+            overflow-y: scroll;
+            min-height: 100%;
+            background-color: rgb(1,4,9) !important;
+            color: white;
+        }
+        #pageContent {
+            min-height: 100%;
+            background-color: rgb(1,4,9) !important;
+        }
+        #mediaContainer {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+        #fileSelector, #zipSelector {
+            display: none;
+        }
+        #imgList > .item {
+            padding: 0;
+        }
+        #pageNum {
+            position: absolute;
+            left: 0;
+            z-index: 1;
+            background-color: rgba(0,0,0,30%);
+            color: rgba(255,255,255,70%);
+        }
+        #previewImg {
+            max-height: unset;
+        }
+        .ui.card.inverted > .content  {
+            background: #1b1c1d;
+        }
+        .ui.card.inverted, .ui.card.inverted > .content, .ui.card.inverted > .content > .header  {
+            color: rgba(255,255,255,.9) !important;
+        }
+        </style>
+    </head>
+    <body>
+        <div class="ui sidebar right push vertical menu inverted">
+            <div class="item">
+                <div class="ui two column grid relaxed">
+                    <div class="column">
+                        <label class="ui icon header inverted">
+                            <i class="folder icon"></i>
+                            导入文件夹
+                            <input type="file" id="fileSelector" webkitdirectory/>
+                        </label>
+                    </div>
+                    <div class="column">
+                        <label class="ui icon header inverted">
+                            <i class="file archive icon"></i>
+                            导入压缩包
+                            <input type="file" id="zipSelector" accept=".zip" multiple/>
+                        </label>
+                    </div>
+                </div>
+                <div class="ui vertical divider inverted">Or</div>
+            </div>
+            <div class="item">
+                <div class="ui form inverted">
+                    <div class="field">
+                        <label>文件夹排序类型</label>
+                        <select class="ui search fluid dropdown" id="folderSortName" value="name">
+                            <option value="name">名称</option>
+                            <option value="mtime">日期</option>
+                            <option value="size">大小</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>排序顺序</label>
+                        <select class="ui search fluid dropdown" id="folderOrder" value="s2b">
+                            <option value="s2b">从小到大</option>
+                            <option value="b2s">从大到小</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>文件排序类型</label>
+                        <select class="ui search fluid dropdown" id="fileSortName" value="humanity">
+                            <option value="humanity">人性化</option>
+                            <option value="name">名称</option>
+                            <option value="mtime">日期</option>
+                            <option value="size">大小</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>排序顺序</label>
+                        <select class="ui search fluid dropdown" id="fileOrder" value="s2b">
+                            <option value="s2b">从小到大</option>
+                            <option value="b2s">从大到小</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="item">
+                <h3>解压队列</h3>
+                <table class="ui basic celled striped table inverted">
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>进度</th>
+                            <th>总值</th>
+                            <th>进度</th>
+                        </tr>
+                    </thead>
+                    <tbody id="zipProgress">
+                    </tbody>
+                </table>
+            </div>
+            <div class="item">
+                <h3>加载列表 <small style="color:cyan;" id="fixImageDisplay">修复图片不显示</small></h3>
+                <div class="ui cards" id="fileParseHistory">
+                </div>
+            </div>
+        </div>
+        <div class="pusher" id="pageContent">
+            <div id="mediaContainer">
+                <div class="ui list" id="imgList" style="width:80%;">
+                    <div class="item">
+                        <span id="pageNum">1/1&nbsp;100.0%</span>
+                        <img crossorigin="anonymous" class="ui fluid image lazyload" data-src="https://p0.meituan.net/csc/dc05b1512f4226e7b4affa366cfbda7677558.jpg">
+                    </div>
+                </div>
+            </div>
+        </div>
+		<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js" integrity="sha256-qXBd/EfAdjOA2FGrGAG+b3YBn2tn5A6bhz+LSgYD96k=" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.js" integrity="sha256-fN8vcX2ULyTDspVTHEteK8hd3rQAb5thNiwakjAW75Q=" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/lazysizes@5.3.2/lazysizes.min.js" integrity="sha256-PZEg+mIdptYTwWmLcBTsa99GIDZujyt7VHBZ9Lb2Jys=" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/alloyfinger@0.1.16/alloy_finger.min.js" integrity="sha256-tSDmz7le58Mj3shxHiNruKIEXcVayPa3pUTx8KMbsx8=" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha256-rMfkFFWoB2W1/Zx+4bgHim0WC7vKRVrq6FTeZclH1Z4=" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js" integrity="sha256-xoh0y6ov0WULfXcLMoaA6nZfszdgI8w2CEJ/3k8NBIE=" crossorigin="anonymous"></script>
+		<script>
+		let config = {
+		    defaultWidth: 80,
+		    menus: {
+		        "宽度": {
+		            "": function (node) {
+		                page.showWidthBox = node;
+		                $(node).text(page.width+"%");
+		                $(node).click(function () {
+		                    let width = parseInt(prompt("请输入宽度(1-100):", page.width)) || page.width;
+		                    page.width = (1<=width&&width<=100?width:page.width);
+		                    page.changeWidth(0);
+		                });
+		            },
+		            "+1": function (node) {
+                        $(node).click(function () {
+                            page.changeWidth(+1);
+                        });
+                        longTapMoreClick(node);
+                    },
+                    "+5": function (node) {
+                        $(node).click(function () {
+                            page.changeWidth(+5);
+                        });
+                        longTapMoreClick(node);
+                    },
+                    "+10": function (node) {
+                        $(node).click(function () {
+                            page.changeWidth(+10);
+                        });
+                        longTapMoreClick(node);
+                    },
+                    "-10": function (node) {
+                        $(node).click(function () {
+                            page.changeWidth(-10);
+                        });
+                        longTapMoreClick(node);
+                    },
+                    "-5": function (node) {
+                        $(node).click(function () {
+                            page.changeWidth(-5);
+                        });
+                        longTapMoreClick(node);
+                    },
+                    "-1": function (node) {
+                        $(node).click(function () {
+                            page.changeWidth(-1);
+                        });
+                        longTapMoreClick(node);
+                    },
+                    "返回": "pre"
+		        },
+		        "自动<br/>滚动": {
+		            "滚动高度:<div class='ui input inverted'><input type='text' value='1' id='autoScrollHeight'></div>": function (node) {
+		                $(node).click(function ({target}) {
+		                    if(target==node) {
+		                        $("#autoScrollHeight", node).val(prompt("请输入滚动高度:", $("#autoScrollHeight", node).val()));
+		                    }
+		                });
+		                page.autoScrollHeightInput = $("#autoScrollHeight", node).get(0);
+		            },
+		            "滚动速度:<div class='ui input inverted'><input type='text' value='50' id='autoScrollSpeed'></div>": function (node) {
+		                $(node).click(function ({target}) {
+		                    if(target==node) {
+		                        $("#autoScrollSpeed", node).val(prompt("请输入滚动速度:", $("#autoScrollSpeed", node).val()));
+		                    }
+		                });
+		                page.autoScrollSpeedInput = $("#autoScrollSpeed", node).get(0);
+		            },
+		            "开始滚动": function (node) {
+		                page.autoScrollBtn = node;
+		                $(node).click(page.toggleAutoScroll);
+		            },
+                    "返回": "pre"
+		        },
+		        "打开<br/>侧栏": function (node) {
+		            $(node).click(function () {
+		                $(".ui.sidebar").sidebar("show");
+		            });
+		        },
+		        "切换<br/>全屏": function (node) {
+                    $(node).click(function () {
+                        fullscreenToggler();
+                    });
+                },
+                "返回<br/>顶部": function (node) {
+                    $(node).click(function () {
+                        $(document).scrollTop(0);
+                    });
+                }
+		    }
+		};
+		// 主要是解析文件路径,更利于使用
+		// 靠第一次被阴了,因为有一个文件夹的名字叫做"constructor"艹啊,没事起这名字干嘛!改用map存储数据
+		// 添加导出导入功能,因为文件太大,所以可以使用indexedDB存储,后续将会添加导入到压缩包功能
+	    class FileParser extends Object {
+	        // 可以支持一开始就导入数据
+	        constructor(filesData) {
+	            super();
+	            this.files = [];
+	            this.filePathMap = {};
+	            this.fileListMap = {};
+	            if(filesData.constructor == File) {
+	                this.addFile(filesData);
+	            }
+	            if(_.isArrayLikeObject(filesData)) {
+	                this.addFiles(filesData);
+	            }
+	            if(_.isString(filesData)) {
+	                this.import(filesData);
+	            }
+	        }
+	        // 添加单个文件
+	        addFile(oriFile) {
+	            if(oriFile.constructor != File) {
+	                throw new Error("数据不是File类型");
+	                return;
+	            }
+	            // File 的数据类型都有些怪,是string但是不是string,非常奇怪
+	            let file = {
+					name: String(oriFile.name),
+					path: String(oriFile.webkitRelativePath),
+					mtime: parseInt(oriFile.lastModified),
+					size: parseInt(oriFile.size),
+					mime: String(oriFile.type),
+					type: "file",
+					file: oriFile
+				};
+				file.dir = file.path.substring(0, file.path.length - file.name.length);
+				file.split = file.path.split(/[\\\/]/);
+				file.ext = file.name.split(".").pop().toLowerCase();
+				this.files.push(file);
+				
+				let pathNow = "";
+				for(let i=0;i<file.split.length;i++) {
+				    let nextPath = pathNow+file.split[i]+"/";
+				    if(!(pathNow in this.filePathMap)) {
+				        this.filePathMap[pathNow] = new Map();
+				    }
+				    if(!(pathNow in this.fileListMap)) {
+				        this.fileListMap[pathNow] = {fileList: [], folderList: []};
+				    }
+				    // 当前是否是文件
+				    if(i==file.split.length-1) {
+				        // 名称是否存在
+				        if(this.filePathMap[pathNow].has(file.split[i])) {
+			                console.error(_.cloneDeep(this.filePathMap[pathNow].get(file.split[i])), file);
+				            throw new Error("不能有同名文件或文件夹:"+pathNow+file.split[i]);
+                            return;
+				        }
+				        this.filePathMap[pathNow].set(file.split[i], file);
+				        this.fileListMap[pathNow].fileList.push(file);
+				    } else {
+				        // 名称是否存在
+				        if(this.filePathMap[pathNow].has(file.split[i])) {
+				            if(this.filePathMap[pathNow].get(file.split[i]).type != "folder") {
+				                console.error(_.cloneDeep(this.filePathMap[pathNow].get(file.split[i])), file);
+				                throw new Error("文件夹不能与文件共名:"+pathNow+file.split[i]);
+	                            return;
+				            }
+				        } else {
+				            this.filePathMap[pathNow].set(file.split[i], {
+					            name: file.split[i],
+					            size: 0,
+					            path: nextPath,
+					            dir: nextPath,
+					            type: "folder",
+					            mtime: -1
+					        });
+					        this.fileListMap[pathNow].folderList.push(this.filePathMap[pathNow].get(file.split[i]));
+				        }
+				        let folder = this.filePathMap[pathNow].get(file.split[i]);
+				        folder.size += file.size;
+				        folder.mtime = Math.max(folder.mtime, file.mtime);
+				        this.filePathMap[pathNow].set(file.split[i], folder);
+				    }
+				    pathNow = nextPath;
+				}
+				return this;
+	        }
+	        // 添加多个文件
+	        addFiles(files) {
+	            // 这个数组都不是正经数组,是obj,有一堆奇怪的bug
+	            for (let i in files) {
+	                if(files[i].constructor != File) {
+	                    continue;
+	                }
+	                this.addFile(files[i]);
+	            }
+	            return this;
+	        }
+	        // 获取文件
+	        getFiles(path, mode=1) {
+	            path = String(path) || "";
+	            // 以文件类型分类(分为文件和文件夹)
+	            if(mode==1) {
+	                if(!(path in this.fileListMap)) {
+		                return {fileList: [], folderList: []};
+		            }
+		            return _.cloneDeep(this.fileListMap[path]);
+	            }
+	            // 不分类(文件和文件夹混在一起,但是有type可以区分)
+	            if(mode==2) {
+	                if(!(path in this.filePathMap)) {
+		                return {};
+		            }
+		            return _.cloneDeep(this.filePathMap[path]);
+	            }
+	        }
+	        // 导出,将file对象拆开写入到json
+	        // File => arrayBuffer => Uint8Array => String
+	        async export() {
+	            function Uint8ArrayToString(fileData) {
+                    let dataString = "";
+                    for (let i = 0; i < fileData.length; i++) {
+                        dataString += String.fromCharCode(fileData[i]);
+                    }
+                    return dataString;
+                }
+                let fileDatas = [];
+	            for (let i in this.files) {
+	                let buffer = await this.files[i].file.arrayBuffer();
+	                fileDatas.push({
+	                    name: this.files[i].name,
+	                    mtime: this.files[i].mtime,
+	                    mime: this.files[i].mime,
+	                    path: this.files[i].path,
+	                    data: Uint8ArrayToString(new Uint8Array(buffer))
+	                });
+	            }
+	            return JSON.stringify(fileDatas);
+	        }
+	        // 导入,将json从新通过file构造器构造为file对象
+	        // String => Uint8Array => arrayBuffer => File
+	        import(data) {
+	            if(!_.isString(data)) {
+	                throw new Error("导入的数据需为json字符串");
+	            }
+	            function StringToUint8Array(str) {
+                    let arr = [];
+                    for (let i = 0, j = str.length; i < j; i++) {
+                        arr.push(str.charCodeAt(i));
+                    }
+                    return new Uint8Array(arr);
+                }
+	            data = JSON.parse(data);
+	            for (let i in data) {
+	                let fileData = StringToUint8Array(data[i].data).buffer;
+	                let file = new File([fileData], data.name, {lastModified: data.mtime, type: data.mime});
+	                // 直接赋值不让写入
+    	            Object.defineProperty(file, "webkitRelativePath", {
+    	                enumerable: true,
+    	                value: data.path
+    	            });
+	                this.addFile(file);
+	            }
+	            return this;
+	        }
+	    }
+	    let exts = {
+            "image": ["bmp","jpg","jpeg","png","gif","webp"],
+            "video": ["mp4","mov","mkv","avi","wmv","m4v","xvid","asf","dv","mpeg","vob","webm","ogv","divx","3gp","mxf","ts","trp","mpg","flv","f4v","swf"],
+            "audio": ["mp3","wav","m4a","wma","aac","flac","ac3","aiff","m4b","m4r","au","ape","mka","ogg","mid"]
+        };
+        // 字面意思,就是当前值是否在数组中
+        function inArray(arr,value){
+            var index = $.inArray(value,arr);
+            if(index >= 0) {
+                return true;
+            }
+            return false;
+        }
+        // 获取后缀名的类型
+        function extType(ext) {
+            for(let key in exts) {
+                if(inArray(exts[key], ext)) {
+                    return key;
+                }
+            }
+            return false;
+        }
+        // 将网址search部分转为对象
+        function objectGet(str = location.search) {
+            if(str[0] == "?") {
+                str = str.substr(1);
+            }
+            if(str=="") {
+                return {};
+            }
+            let pairs = str.split("&");
+            let getObject = {}
+            for(let key in pairs) {
+                let temp = pairs[key].split("=");
+                temp[0] = decodeURIComponent(temp[0]);
+                temp[1] = decodeURIComponent(temp[1]);
+                getObject[temp[0]] = temp[1];
+            }
+            return getObject;
+        }
+        // 拼接转为对象的网址search部分
+        // 会自动url编码
+        function exGet(obj) {
+            getStr = "";
+            for(let key in obj) {
+                getStr +=encodeURIComponent(key)+"="+encodeURIComponent(obj[key])+"&";
+            }
+            return "?"+getStr.substr(0,getStr.length-1);
+        }
+        // 编译并获取网址search部分的字符串
+        /**
+         * 假设当前的search部分为:
+         * "?a=0&b=1"
+         * 运行:
+         * getSearchStr({
+         *     "a":3,
+         *     "c":"abc"
+         * });
+         * 返回值:
+         * "?a=3&b=1&c=abc"
+         * 
+         * 同样是上一个的search部分
+         * 运行:
+         * getSearchStr({
+         *     "a":3,
+         *     "c":"abc"
+         * },{});
+         * 返回值:
+         * "?a=3&c=abc"
+         * 真的非常好用!!!
+         */
+        // 总结, 第一个就是要更改的部分, 第二个就是基准部分
+        function getSearchStr(changeObj = {}, getObj = objectGet()) {
+            for(let key in changeObj) {
+                getObj[key] = changeObj[key];
+            }
+            return exGet(getObj);
+        }
+        // html特殊字符编码
+        function html_encode(str) {
+            return $("<div></div>").text(str).html();
+        }
+        // 自动检测并切换全屏(网上抄的)
+        function fullscreenToggler() {
+        	var element = document.documentElement;		// 返回 html dom 中的root 节点 <html>
+        	if(!$('body').hasClass('full-screen')) {
+        		$('body').addClass('full-screen');
+        		$('#alarm-fullscreen-toggler').addClass('active');
+        		// 判断浏览器设备类型
+        		if(element.requestFullscreen) {
+        			element.requestFullscreen();
+        		} else if (element.mozRequestFullScreen){	// 兼容火狐
+        			element.mozRequestFullScreen();
+        		} else if(element.webkitRequestFullscreen) {	// 兼容谷歌
+        			element.webkitRequestFullscreen();
+        		} else if (element.msRequestFullscreen) {	// 兼容IE
+        			element.msRequestFullscreen();
+        		}
+        	} else {			// 退出全屏
+        		$('body').removeClass('full-screen');
+        		$('#alarm-fullscreen-toggler').removeClass('active');
+        		//	退出全屏
+        		if(document.exitFullscreen) {
+        			document.exitFullscreen();
+        		} else if (document.mozCancelFullScreen) {
+        			document.mozCancelFullScreen();
+        		} else if (document.webkitCancelFullScreen) {
+        			document.webkitCancelFullScreen();
+        		} else if (document.msExitFullscreen) {
+        			document.msExitFullscreen();
+        		}
+        	}
+        }
+        // 长按时联机,没什么好说的
+        function longTapMoreClick(node) {
+            let timerId;
+            let clickId;
+            new AlloyFinger(node, {
+                touchStart: function () {
+                    timerId = setTimeout(function () {
+                        clickId = setInterval(function () {
+                            node.click();
+                        }, 50);
+                    }, 800);
+                },
+                touchEnd:  function () {
+                    clearTimeout(timerId);
+                    clearInterval(clickId);
+                },
+                touchCancel: function () {
+                    clearTimeout(timerId);
+                    clearInterval(clickId);
+                }
+            });
+        }
+        // 根据object生成菜单
+        function showMenu(baseId, menus, appTo = $("body")) {
+            // 其实内部传递的是节点,不要id也没事内
+            if(!_.isString(baseId)||baseId=="") {
+                return false;
+            }
+            // 属于是一个把所有层级菜单包起来的一个大盒子
+            let menusBox = $(`<div style="position:fixed;right:0;bottom:0;"></div>`);
+            menusBox.attr("id", baseId);
+            let boxPreId = baseId+"-box",
+                btnPreId = baseId+"-btn";
+            // 这个是本体,递归生成菜单(递归不用考虑变量重复问题(懒))
+            // 遵循一个原则,传出本函数的都是原始element,不是jquery的对象
+            function getDiv(id, list, preBox = null) {
+                // console.log(0,list);
+                // 这里是 这一级菜单的 一个小盒子,生成完后会添加到大盒子里
+                // 按钮盒子
+                let box = $(`<div class="ui vertical buttons" style="background-color: rgba(0,0,0,30%);"></div>`);
+                box.attr("id", boxPreId+id);
+                // 假设这个不是根目录(菜单),那就隐藏
+                if(preBox!=null) {
+                    box.css("display","none")
+                }
+                // 计数工具人变量
+                let index = 0;
+                // 遍历传过来的菜单
+                _.forIn(list,function (t, name) {
+                    // 不管这一项是什么,先生成一个初始的按钮
+                    let butn = $(`<button type="button" class="ui inverted button"></button>`);
+                    butn
+                        .html(name)
+                        .attr("id", btnPreId+id+"-"+index);
+                    index++;
+                    // 1. 如果传过来的是一个函数,那么就是一个有功能的按钮,那么就把节点传过去处理
+                    if(_.isFunction(t)) {
+                        // console.log(1,butn)
+                        t(butn.get(0));
+                    }
+                    // 2. 如果是一个对象,那么就递归给自己
+                    if(_.isObjectLike(t)) {
+                        // console.log(2,t)
+                        // 看本函数的最后,当接收到下一级菜单节点后,存起来
+                        let nextBox = getDiv(id+"-"+index, t, box);
+                        // 当点击按钮后,就进入下一级目录
+                        butn.click(function () {
+                            box.fadeOut("fast", function () {
+                                nextBox.fadeIn("fast");
+                            });
+                        });
+                    }
+                    // 3. 字符串为"close",那么点击按钮就隐藏本级菜单
+                    if(t=="close") {
+                        butn.click(function () {
+                            box.fadeOut("fast");
+                        });
+                    }
+                    // 4. 字符串为"pre"并且不是根目录
+                    if(t=="pre"&&preBox!=null) {
+                        // 当点击按钮后,就返回上一级目录
+                        butn.click(function () {
+                            box.fadeOut("fast", function () {
+                                preBox.fadeIn("fast");
+                            });
+                        });
+                    }
+                    // 将按钮添加到本级菜单
+                    box.append(butn);
+                });
+                // 将小盒子(菜单)添加到大盒子
+                menusBox.append(box);
+                // 返回本目录的盒子
+                return box;
+            }
+            // 这里返回的是根目录的盒子,没有用,就不接收了
+            getDiv("", menus);
+            // 将最大的盒子添加到 body 中
+            // fixed bug
+            $(appTo).append(menusBox);
+            // 返回最大的盒子的 element
+            return menusBox.get(0);
+        }
+	    let page = {
+	        page: {},
+	        width: config.defaultWidth,
+	        showWidthBox: null,
+	        autoScrollBtn: null,
+	        autoScrollHeightInput: null,
+	        autoScrollSpeedInput: null,
+	        controlBox: null,
+	        autoScrollState: false,
+	        autoScrollerId: null,
+	        changeWidth: function (x) {
+	            page.width = Math.min(100, Math.max(1, page.width+x));
+	            $(page.showWidthBox).text(page.width+"%");
+	            $(":root").css("scroll-behavior","auto");
+	            let viewProgress = ($(document).scrollTop() - $("#imgList").offset().top)/$("#imgList").height();
+	            $("#imgList").stop(0);
+	            $("#imgList").animate({
+                    width: page.width+"%"
+                },{
+                    duration: 200,
+                    progress: function () {
+                        if(viewProgress>0) {
+                            $(document).scrollTop(
+                                $("#imgList").height()*viewProgress+
+                                $("#imgList").offset().top
+                            );
+                        }
+                    },
+                    complete: function () {
+                        if(viewProgress>0) {
+                            $(document).scrollTop(
+                                $("#imgList").height()*viewProgress+
+                                $("#imgList").offset().top
+                            );
+                        }
+                        // bootstrap 默认css平滑滚动
+                        $(":root").css("scroll-behavior","");
+                    }
+                });
+	        },
+	        toggleAutoScroll: function () {
+	            if(page.autoScrollState) {
+	                $(":root").css("scroll-behavior","auto");
+	                function startScroll() {
+	                    let sHeight = parseInt($(page.autoScrollHeightInput).val()),
+	                        sSpeed = parseInt($(page.autoScrollSpeedInput).val());
+	                    page.autoScrollerId = setInterval(function () {
+	                        $(document).scrollTop($(document).scrollTop()+sHeight);
+	                    }, sSpeed);
+	                }
+	                $([page.autoScrollSpeedInput, page.autoScrollHeightInput]).on("input", function () {
+	                    clearInterval(page.autoScrollerId);
+	                    startScroll();
+	                });
+	                startScroll();
+	                $(page.autoScrollBtn).text("结束滚动");
+	                page.autoScrollState = !page.autoScrollState;
+	            } else {
+	                $([page.autoScrollSpeedInput, page.autoScrollHeightInput]).off("input");
+	                clearInterval(page.autoScrollerId);
+	                $(page.autoScrollBtn).text("开始滚动");
+	                page.autoScrollState = !page.autoScrollState;
+	                $(":root").css("scroll-behavior","");
+	            }
+	        },
+	        showHistory: function () {
+	            let tr = [];
+	            for(let i in file.parseHistory) {
+	                let pic = "";
+	                if(file.parseHistory[i].cover!=false) {
+	                    pic = $(`<img class="ui fluid image" id="previewImg"/>`).attr("src", URL.createObjectURL(file.parseHistory[i].cover.file));
+	                }
+	                tr.unshift(
+	                    $(`<div class="ui orange card inverted"></div>`)
+    	                    .append(
+                                $(`<div class="image"></div>`).append(pic),
+                                $(`<div class="content"></div>`).append($(`<a class="header"></a>`).text(file.parseHistory[i].name))
+                            )
+        	                .attr("histoty-id", i)
+    	            );
+	            }
+	            $("#fileParseHistory").html(tr);
+	            // semantic-ui独特的展示方式导致图片不展示,欸嘿嘿,我让他稍微动一下,图片就加载出来了
+	            $(".ui.sidebar").css({
+	                "transform": "translate3d(1px,0px,0px)",
+	                "transition": "0s"
+	            });
+	            setTimeout(function () {
+	                $(".ui.sidebar").css({
+    	                "transform": "",
+    	                "transition": ""
+    	            });
+	            }, 1);
+	        },
+	        zipProgress: function (name) {
+	            let value, total, progress;
+	            name = $(`<td></td>`).text(name);
+	            value = $(`<td></td>`).text(0);
+	            total = $(`<td></td>`).text(0);
+	            progress = $(`<td></td>`).text("0%");
+	            let tr = $(`<tr></tr>`).append(
+                    name, value, total, progress
+                );
+	            $("#zipProgress").prepend(tr);
+	            return {
+	                update: function (v, t) {
+	                    value.text(v);
+	                    total.text(t);
+	                    progress.text((v*100/t).toFixed(1)+"%")
+	                    if(t==v) {
+	                        // 5秒后自动移除
+	                        setTimeout(this.remove, 1000);
+	                    }
+	                },
+	                remove: function () {
+                        tr.remove();
+	                }
+	            };
+	        },
+	        show: function (fp) {
+	            pageInfo = {
+	                total: 0,
+	                image: 0,
+	                video: 0,
+	                audio: 0
+	            };
+	            function mediaPreview(info) {
+    	            let type = extType(info.ext);
+    	            if(type==false) {
+    	                return false;
+    	            }
+    	            pageInfo.total++;
+    	            let url = URL.createObjectURL(info.file);
+    	            if(type=="image") {
+    	                pageInfo.image++;
+    	                // base64为1px*1px的灰色的位图
+    	                return $(`<img crossorigin="anonymous" src="data:image/bmp;base64,Qk06AAAAAAAAADYAAAAoAAAAAQAAAAEAAAABABgAAAAAAAAAAADEDgAAxA4AAAAAAAAAAAAAWFhYAA==" class="ui fluid image lazyload"/>`).attr("data-src", url).attr("art", html_encode(info.name));
+    	            }
+    	            if(type=="video") {
+    	                pageInfo.video++;
+    	                return $(`<video crossorigin="anonymous" class="ui fluid image" preload="metadata" controls muted></video>`).attr("src", url).attr("art", html_encode(info.name));
+    	            }
+    	            if(type=="audio") {
+    	                pageInfo.audio++;
+    	                return $(`<audio crossorigin="anonymous" class="ui fluid image" preload="metadata" controls muted></audio>`).attr("src", url).attr("art", html_encode(info.name));
+    	            }
+    	        }
+	            let fileOrder = ($("#fileOrder").val()=="s2b"?true:false);
+	            let folderOrder = ($("#folderOrder").val()=="s2b"?true:false);
+	            let fileSortName = $("#fileSortName").val();
+	            let folderSortName = $("#folderSortName").val();
+	            let fileSorter, folderSorter;
+	            if(fileSortName=="humanity") {
+	                fileSorter = file.compareBothByLengthAndString(fileOrder);
+	            } else {
+	                fileSorter = file.creatCompareFunc(fileSortName, fileOrder);
+	            }
+	            folderSorter = file.creatCompareFunc(folderSortName, folderOrder);
+			    let fileList = file.getAndSortAllFiles(fp, fileSorter, folderSorter);
+			    let medias = fileList.map(function (info, index) {
+			        let media = mediaPreview(info);
+    	            let box = $(`<div class="item"></div>`);
+    	            box.append(
+    	                $(`<span id="pageNum"></span>`).text((index+1)+"/"+fileList.length+" "+((index+1)*100/fileList.length).toFixed(1)+"%"), 
+    	                media
+    	            );
+			        return box;
+			    });
+			    $("#imgList").html(medias);
+			    page.page = pageInfo;
+	        }
+	    };
+	    let file = {
+	        parseHistory: [],
+	        getCover: function (fp, fileSorter, folderSorter, path="") { 
+	            let files = fp.getFiles(path);
+    	        files.fileList.sort(fileSorter);
+    	        files.folderList.sort(folderSorter);
+    	        for(let i in files.fileList) {
+    	            if(extType(files.fileList[i].ext)=="image") {
+    	                return files.fileList[i];
+    	            }
+    	        }
+    	        for(let i in files.folderList) {
+    	            let cover = file.getCover(fp, fileSorter, folderSorter, path+files.folderList[i].name+"/");
+    	            if(cover!=false) {
+    	                return cover;
+    	            }
+    	        }
+    	        return false;
+	        },
+	        getAndSortAllFiles: function (fp, fileSorter, folderSorter, path="") {
+    	        let files = fp.getFiles(path);
+    	        files.fileList.sort(fileSorter);
+    	        files.folderList.sort(folderSorter);
+    	        let fileList = files.fileList;
+    	        for(let i in files.folderList) {
+    	            fileList = fileList.concat(file.getAndSortAllFiles(fp, fileSorter, folderSorter, path+files.folderList[i].name+"/"));
+    	        }
+    	        return fileList;
+    	    },
+    	    // 适配人类起的文件名例如 (9和10字符串的排序)
+    	    // reverse: true为从小到大 false为从大到小
+    	    compareBothByLengthAndString: function (reverse) {
+    	        return function (a, b) {
+    	            let x, y;
+        	        x = a.name.substring(0, a.name.length-a.ext.length-1);
+        	        y = b.name.substring(0, b.name.length-b.ext.length-1);
+        	        if(x==y) {
+        	            return 0;
+        	        }
+        	        if(x.length!=y.length) {
+        	            return ((x.length > y.length)==reverse?1:-1);
+        	        }
+        	        return ((x > y)==reverse?1:-1);
+    	        };
+    	    },
+    	    // 生成排序的函数
+    	    // name: 要排序的键
+    	    // reverse: true为从小到大 false为从大到小
+    	    creatCompareFunc: function (name, reverse) {
+    	        return (a, b) => ((a[name] > b[name])==reverse?1:-1);
+    	    },
+    	    zip2Files: async function (blob, onProgress) {
+    	        let zip = await JSZip.loadAsync(blob);
+    	        let files = [];
+    	        let progress = 0;
+    	        let total = Object.keys(zip.files).length;
+    	        onProgress(progress, total);
+    	        for (let i in zip.files) {
+    	            if(zip.files[i].dir) {
+    	                total--;
+    	                continue;
+    	            }
+    	            let file = await zip.files[i].async("blob");
+    	            let path = zip.files[i].name;
+    	            let name = path.split(/[\\\/]/).pop();
+    	            file = new File([file], name, {
+    	                type: "application/octet-stream",
+    	                lastModified: zip.files[i].date.valueOf()
+    	            });
+    	            // 直接赋值不让写入
+    	            Object.defineProperty(file, "webkitRelativePath", {
+    	                enumerable: true,
+    	                value: path
+    	            });
+    	            files.push(file);
+    	            if(onProgress) {
+    	                progress++;
+    	                onProgress(progress, total, file, files);
+    	            }
+    	        }
+    	        return files;
+    	    },
+    	    parse: function (files, option={}) {
+    	        let fp = new FileParser(files);
+			    let cover = file.getCover(fp, file.compareBothByLengthAndString(true), file.creatCompareFunc("name", true));
+			    file.parseHistory.push({
+			        fileParser: option.fileParser || fp,
+			        cover: option.cover || cover,
+			        name: option.name || fp.getFiles("").folderList[0].name
+			    });
+			    page.showHistory();
+    	    }
+	    };
+		$(document).ready(function () {
+		    page.controlBox = showMenu("controlBox", config.menus, $("#pageContent").get(0));
+			$("#fileSelector").change(function () {
+			    file.parse(this.files);
+			});
+			$("#zipSelector").change(async function () {
+			    for (let i in this.files) {
+	                if(this.files[i].constructor != File) {
+	                    continue;
+	                }
+	                let zipProgress = page.zipProgress(String(this.files[i].name));
+    			    let files = await file.zip2Files(this.files[i], function (value, total) {
+    			        zipProgress.update(value, total);
+    			    });
+    			    file.parse(files, {name: String(this.files[i].name)});
+	            }
+			});
+			$("#imgList").css("width", config.defaultWidth+"%");
+			$(".ui.dropdown").dropdown();
+			$("#fileParseHistory").click(function ({target}) {
+			    if($(target).attr("histoty-id")==undefined) {
+			        target = $(target).parents("[histoty-id]");
+			        if(target.length==0) {
+			            return;
+			        }
+			    }
+			    let id = parseInt($(target).attr("histoty-id"));
+			    page.show(file.parseHistory[id].fileParser);
+			});
+			$("#fixImageDisplay").click(function () {
+			    $(".ui.sidebar").css({
+	                "transform": "translate3d(1px,0px,0px)",
+	                "transition": "0s"
+	            });
+	            setTimeout(function () {
+	                $(".ui.sidebar").css({
+    	                "transform": "",
+    	                "transition": ""
+    	            });
+	            }, 1);
+			});
+			let returnBtn = $(`<button class="ui inverted button" style="display:none;margin-right:1.5cm;background-color:rgba(0,0,0,30%);">重置<br/>菜单</button>`);
+			returnBtn.click(function () {
+			    $(page.controlBox).fadeOut(function () {
+			        returnBtn.hide();
+			        $(this).css({
+                        left: "",
+                        top: "",
+                        right: "0",
+                        bottom: "0"
+                    });
+                    $(this).fadeIn("fast");
+			    });
+			});
+			$(page.controlBox).prepend(returnBtn);
+			new AlloyFinger($("#pageContent").get(0), {
+                doubleTap: function (e) {
+                    console.log(e);
+                    // 避免与长按连点功能冲突
+                    if($(page.controlBox).find(e.target).length!=0) {
+                        return;
+                    }
+                    $(page.controlBox).fadeOut("fast", function () {
+                        // 懒人式写法,累了 两天考八科
+                        let left, top;
+                        left = e.changedTouches[0].clientX;
+                        top = e.changedTouches[0].clientY;
+                        console.log(left,top);
+                        
+                        let clHeight, clWidth;
+                        clHeight = $(e.view).height();
+                        clWidth = $(e.view).width();
+                        console.log(clHeight,clWidth);
+                        
+                        returnBtn.show();
+                        let boxHeight, boxWidth;
+                        boxHeight = $(page.controlBox).outerHeight(true);
+                        boxWidth = $(page.controlBox).outerWidth(true);
+                        console.log(boxHeight,boxHeight);
+                        
+                        let realLeft, realTop;
+                        realLeft = left-boxWidth/2;
+                        realTop = top-boxHeight/2;
+                        realLeft = Math.max(0,realLeft);
+                        realTop = Math.max(0,realTop);
+                        realLeft = Math.min(clWidth-boxWidth,realLeft);
+                        realTop = Math.min(clHeight-boxHeight,realTop);
+                        $(this).css({
+                            left: realLeft,
+                            top: realTop,
+                            right: "auto",
+                            bottom: "auto"
+                        });
+                        $(this).fadeIn("fast");
+                    });
+                }
+            });
+		});
+		</script>
+    </body>
+</html>
