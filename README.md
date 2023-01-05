@@ -10,4 +10,5 @@ html+js 本地可用 可读 图片 视频 音频
 # 示例!
 [https://dffxd-suntra.github.io/reader/](https://dffxd-suntra.github.io/reader/)
 ![short9](https://user-images.githubusercontent.com/47025714/210682764-705f9c52-b44d-4554-8249-eab45690eb06.gif)
+# 注意!gif帧率不够,是双击!不做长按触发的原因是手机会选择图片,弹出浏览器的图片选择框
 ![short10](https://user-images.githubusercontent.com/47025714/210682780-1a4d0a2a-0014-4b0b-8d41-c96e8728bf84.gif)
